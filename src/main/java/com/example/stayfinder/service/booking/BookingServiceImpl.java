@@ -14,11 +14,15 @@ import com.example.stayfinder.repository.booking.BookingRepository;
 import com.example.stayfinder.repository.booking.BookingSpecificationBuilder;
 import com.example.stayfinder.repository.user.UserRepository;
 import com.example.stayfinder.service.payment.StripePaymentService;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +93,17 @@ public class BookingServiceImpl implements BookingService {
         } else {
             throw new DataProcessingException("Booking is already canceled.");
         }
+    }
+
+    @Scheduled(cron = "0 0 * * * ?")
+    @Override
+    public void checkHourlyExpiredBookings() {
+        LocalDateTime now = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
+        Set<Long> bookingIds = bookingRepository.findByCheckOutDateAndStatusNot(
+                        now, Booking.Status.CANCELED).stream()
+                .map(Booking::getId)
+                .collect(Collectors.toSet());
+        bookingRepository.updateStatusForExpiredBooking(bookingIds, Booking.Status.EXPIRED);
     }
 
     private Accommodation validateAccommodation(CreateBookingRequestDto requestDto) {
