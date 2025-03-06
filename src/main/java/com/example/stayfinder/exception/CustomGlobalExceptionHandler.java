@@ -64,6 +64,13 @@ public class CustomGlobalExceptionHandler extends ResponseEntityExceptionHandler
         return getObjectResponseEntity(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(DataProcessingException.class)
+    protected ResponseEntity<Object> handleDataProcessingException(
+            DataProcessingException ex
+    ) {
+        return getObjectResponseEntity(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     private ResponseEntity<Object> getObjectResponseEntity(
             String message, HttpStatus status) {
         Map<String, Object> body = new LinkedHashMap<>();
