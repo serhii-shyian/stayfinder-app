@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-users-roles
+      author: john_smith
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: name
+                  value: ADMIN
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: name
+                  value: USER
+
+  - changeSet:
+      id: insert-first-user
+      author: john_smith
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: admin
+              - column:
+                  name: password
+                  value: $2a$12$jtvBQ6G0m1k4x5otVTpuauyYBGNa.0j3zulE4oi90VslTB82ZGqTy #qwerty
+              - column:
+                  name: email
+                  value: admin@i.ua
+              - column:
+                  name: first_name
+                  value: John
+              - column:
+                  name: last_name
+                  value: Smith
+
+  - changeSet:
+      id: insert-users_roles
+      author: john_smith
+      changes:
+        - insert:
+            tableName: users_roles
+            columns:
+              - column:
+                  name: user_id
+                  valueComputed: (SELECT id FROM users WHERE email = 'admin@i.ua')
+              - column:
+                  name: role_id
+                  valueComputed: (SELECT id FROM roles WHERE name = 'ADMIN')
