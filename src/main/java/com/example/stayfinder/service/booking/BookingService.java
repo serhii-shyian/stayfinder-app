@@ -21,4 +21,6 @@ public interface BookingService {
             Long userId, Long bookingId, CreateBookingRequestDto requestDto);
 
     void cancelByUserIdAndId(Long userId, Long bookingId);
+
+    void checkHourlyExpiredBookings();
 }

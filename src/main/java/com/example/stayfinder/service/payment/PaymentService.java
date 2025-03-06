@@ -16,4 +16,6 @@ public interface PaymentService {
     String processCancelPayment(String sessionId);
 
     boolean existsByBookingUserIdAndStatus(Long userId);
+
+    void checkExpiredPayments();
 }

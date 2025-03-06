@@ -20,6 +20,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +80,14 @@ public class StripePaymentService implements PaymentService {
     public boolean existsByBookingUserIdAndStatus(Long userId) {
         return paymentRepository.existsByBookingUserIdAndStatus(
                 userId, Payment.PaymentStatus.PENDING);
+    }
+
+    @Scheduled(cron = "0 1 * * * *")
+    @Override
+    public void checkExpiredPayments() {
+        Long currentTimestamp = System.currentTimeMillis() / 1000;
+        paymentRepository.updateExpiredPayments(
+                currentTimestamp, Payment.PaymentStatus.EXPIRED, Payment.PaymentStatus.PENDING);
     }
 
     private Payment findPaymentBySessionId(String sessionId) {

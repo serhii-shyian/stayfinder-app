@@ -24,4 +24,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                       @Param("status") Payment.PaymentStatus status);
 
     boolean existsByBookingUserIdAndStatus(Long userId, Payment.PaymentStatus status);
+
+    @Modifying
+    @Query("UPDATE Payment p SET p.status = :status WHERE p.status = :pendingStatus "
+            + "AND p.expiredTime < :currentTimestamp")
+    void updateExpiredPayments(@Param("currentTimestamp") Long currentTimestamp,
+                               @Param("status") Payment.PaymentStatus status,
+                               @Param("pendingStatus") Payment.PaymentStatus pendingStatus);
 }
