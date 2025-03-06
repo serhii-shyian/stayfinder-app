@@ -13,6 +13,7 @@ import com.example.stayfinder.repository.accommodation.AccommodationRepository;
 import com.example.stayfinder.repository.booking.BookingRepository;
 import com.example.stayfinder.repository.booking.BookingSpecificationBuilder;
 import com.example.stayfinder.repository.user.UserRepository;
+import com.example.stayfinder.service.payment.StripePaymentService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,9 +31,13 @@ public class BookingServiceImpl implements BookingService {
     private final BookingSpecificationBuilder specificationBuilder;
     private final AccommodationRepository accommodationRepository;
     private final UserRepository userRepository;
+    private final StripePaymentService paymentService;
 
     @Override
     public BookingDto save(User user, CreateBookingRequestDto requestDto) {
+        if (paymentService.existsByBookingUserIdAndStatus(user.getId())) {
+            throw new DataProcessingException("The user has unpaid reservations!");
+        }
         Accommodation accommodationFromDb = validateAccommodation(requestDto);
         User userFromDb = findUserById(user.getId());
         Booking booking = createBookingEntity(requestDto, accommodationFromDb, userFromDb);

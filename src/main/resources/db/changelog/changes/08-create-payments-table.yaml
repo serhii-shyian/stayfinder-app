@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-payments-table
+      author: john_smith
+      changes:
+        - createTable:
+            tableName: payments
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: booking_id
+                  type: bigint
+                  constraints:
+                    references: bookings(id)
+                    foreignKeyName: fk_payments_booking
+                    nullable: false
+              - column:
+                  name: session_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: session_url
+                  type: varchar(2048)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expired_time
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: decimal(10, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
