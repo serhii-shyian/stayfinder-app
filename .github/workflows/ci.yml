@@ -16,7 +16,15 @@ jobs:
           cache: maven
       - name: Create .env file
         run: |
-          echo "JWT_EXPIRATION=86400000" >> .env
-          echo "JWT_SECRET=secret1234567890word0987654321qwerty" >> .env
+          echo "JWT_EXPIRATION=${{secrets.JWT_EXPIRATION}}" >> .env
+          echo "JWT_SECRET=${{secrets.JWT_SECRET}}" >> .env
+          echo "STRIPE_SECRET_KEY=${{secrets.STRIPE_SECRET_KEY}}" >> .env
+          echo "STRIPE_SUCCESS_URL=${{secrets.STRIPE_SUCCESS_URL}}" >> .env
+          echo "STRIPE_CANCEL_URL=${{secrets.STRIPE_CANCEL_URL}}" >> .env
+          echo "STRIPE_SESSION_PLACEHOLDER=${{secrets.STRIPE_SESSION_PLACEHOLDER}}" >> .env
+          echo "STRIPE_SESSION_REQUEST=${{secrets.STRIPE_SESSION_REQUEST}}" >> .env
+          echo "STRIPE_DEFAULT_QUANTITY=${{secrets.STRIPE_DEFAULT_QUANTITY}}" >> .env
+          echo "STRIPE_DEFAULT_CURRENCY=${{secrets.STRIPE_DEFAULT_CURRENCY}}" >> .env          
+          echo "STRIPE_CENTS_AMOUNT=${{secrets.STRIPE_CENTS_AMOUNT}}" >> .env
       - name: Build with Maven
         run: mvn --batch-mode --update-snapshots verify
