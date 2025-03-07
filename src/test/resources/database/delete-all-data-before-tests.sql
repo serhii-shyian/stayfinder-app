@@ -1,3 +1,4 @@
+DELETE FROM telegram_bot_chats;
 DELETE FROM payments;
 DELETE FROM bookings;
 DELETE FROM accommodation_amenities;
