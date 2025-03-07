@@ -2,11 +2,14 @@ package com.example.stayfinder.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.example.stayfinder.dto.user.UserRegisterRequestDto;
 import com.example.stayfinder.dto.user.UserResponseDto;
+import com.example.stayfinder.exception.EntityNotFoundException;
 import com.example.stayfinder.exception.RegistrationException;
 import com.example.stayfinder.mapper.UserMapper;
 import com.example.stayfinder.model.Role;
@@ -14,6 +17,7 @@ import com.example.stayfinder.model.User;
 import com.example.stayfinder.repository.role.RoleRepository;
 import com.example.stayfinder.repository.user.UserRepository;
 import com.example.stayfinder.service.user.UserServiceImpl;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -84,6 +88,112 @@ public class UserServiceTest {
         verifyNoMoreInteractions(userRepository);
     }
 
+    @Test
+    @DisplayName("""
+            Update user roles when user exists
+            """)
+    public void updateUserRoles_ExistingUserId_ReturnsUpdatedUser() {
+        //Given
+        User user = getUser();
+        List<String> roleNames = List.of("ADMIN");
+        Set<Role.RoleName> roleNamesSet = Set.of(Role.RoleName.ADMIN);
+        Set<Role> roles = Set.of(getAdminRole());
+        UserResponseDto expected = getUserResponseDto();
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(roleRepository.findAllByNameContaining(roleNamesSet)).thenReturn(roles);
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toDto(user)).thenReturn(expected);
+
+        //When
+        UserResponseDto actual = userService.updateUserRoles(user.getId(), roleNames);
+
+        //Then
+        assertEquals(expected, actual);
+        verifyNoMoreInteractions(userRepository, roleRepository, userMapper);
+    }
+
+    @Test
+    @DisplayName("""
+            Update user roles when user does not exist
+            """)
+    public void updateUserRoles_NonExistingUserId_ThrowsException() {
+        //Given
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        //Then
+        assertThrows(EntityNotFoundException.class,
+                () -> userService.updateUserRoles(99L, List.of("ADMIN")));
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    @DisplayName("""
+            Find user profile successfully when user exists
+            """)
+    public void findProfile_ExistingUser_ReturnsUserProfile() {
+        // Given
+        User user = getUser();
+        UserResponseDto expected = getUserResponseDto();
+
+        when(userMapper.toDto(user)).thenReturn(expected);
+
+        // When
+        UserResponseDto actual = userService.findProfile(user);
+
+        // Then
+        assertEquals(expected, actual);
+        verify(userMapper).toDto(user);
+        verifyNoMoreInteractions(userMapper);
+    }
+
+    @Test
+    @DisplayName("""
+            Update user profile successfully when user exists and data is valid
+            """)
+    public void updateProfile_ExistingUser_UpdatesProfile() {
+        // Given
+        User user = getUser();
+        UserRegisterRequestDto updateDto = getUserRegisterRequestDto();
+        UserResponseDto expected = getUserResponseDto();
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        doNothing().when(userMapper).updateEntityFromDto(user, updateDto);
+        when(passwordEncoder.encode(updateDto.password()))
+                .thenReturn("encodedPassword");
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toDto(user)).thenReturn(expected);
+
+        // When
+        UserResponseDto actual = userService.updateProfile(user, updateDto);
+
+        // Then
+        assertEquals(expected, actual);
+        verify(userMapper).updateEntityFromDto(user, updateDto);
+        verify(passwordEncoder).encode(updateDto.password());
+        verify(userRepository).save(user);
+        verify(userMapper).toDto(user);
+        verifyNoMoreInteractions(userMapper, userRepository, passwordEncoder);
+    }
+
+    @Test
+    @DisplayName("""
+            Throw exception when updating profile of a non-existent user
+            """)
+    public void updateProfile_NonExistentUser_ThrowsException() {
+        // Given
+        User user = getUser();
+        UserRegisterRequestDto updateDto = getUserRegisterRequestDto();
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThrows(EntityNotFoundException.class,
+                () -> userService.updateProfile(user, updateDto));
+
+        verifyNoMoreInteractions(userMapper, passwordEncoder, userRepository);
+    }
+
     private UserRegisterRequestDto getUserRegisterRequestDto() {
         return new UserRegisterRequestDto(
                 "john.doe",
@@ -124,5 +234,11 @@ public class UserServiceTest {
                 "John",
                 "Doe",
                 Set.of("USER"));
+    }
+
+    private Role getAdminRole() {
+        return new Role()
+                .setId(2L)
+                .setName(Role.RoleName.ADMIN);
     }
 }
