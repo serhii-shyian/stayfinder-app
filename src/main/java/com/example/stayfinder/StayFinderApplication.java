@@ -2,12 +2,14 @@ package com.example.stayfinder;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
 @SpringBootApplication
-public class StayfinderAppApplication {
+public class StayFinderApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(StayfinderAppApplication.class, args);
+        SpringApplication.run(StayFinderApplication.class, args);
     }
 
 }

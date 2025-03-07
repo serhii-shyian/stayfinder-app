@@ -13,6 +13,7 @@ import com.example.stayfinder.repository.accommodation.AccommodationRepository;
 import com.example.stayfinder.repository.booking.BookingRepository;
 import com.example.stayfinder.repository.booking.BookingSpecificationBuilder;
 import com.example.stayfinder.repository.user.UserRepository;
+import com.example.stayfinder.service.notification.NotificationService;
 import com.example.stayfinder.service.payment.StripePaymentService;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,6 +37,7 @@ public class BookingServiceImpl implements BookingService {
     private final AccommodationRepository accommodationRepository;
     private final UserRepository userRepository;
     private final StripePaymentService paymentService;
+    private final NotificationService notificationService;
 
     @Override
     public BookingDto save(User user, CreateBookingRequestDto requestDto) {
@@ -45,6 +47,7 @@ public class BookingServiceImpl implements BookingService {
         Accommodation accommodationFromDb = validateAccommodation(requestDto);
         User userFromDb = findUserById(user.getId());
         Booking booking = createBookingEntity(requestDto, accommodationFromDb, userFromDb);
+        notificationService.sendCreateBookingMessage(accommodationFromDb, userFromDb, booking);
 
         return bookingMapper.toDto(bookingRepository.save(booking));
     }
@@ -90,6 +93,7 @@ public class BookingServiceImpl implements BookingService {
         Booking bookingFromDb = findBookingByUserAndId(userId, bookingId);
         if (bookingFromDb.getStatus() != Booking.Status.CANCELED) {
             bookingRepository.updateStatus(bookingId, Booking.Status.CANCELED);
+            notificationService.sendCancelBookingMessage(findUserById(userId), bookingFromDb);
         } else {
             throw new DataProcessingException("Booking is already canceled.");
         }
@@ -104,6 +108,12 @@ public class BookingServiceImpl implements BookingService {
                 .map(Booking::getId)
                 .collect(Collectors.toSet());
         bookingRepository.updateStatusForExpiredBooking(bookingIds, Booking.Status.EXPIRED);
+
+        List<User> userList = userRepository.findAllById(bookingIds);
+
+        if (!bookingIds.isEmpty()) {
+            notificationService.sendReleaseAccommodationMessage(bookingIds, userList);
+        }
     }
 
     private Accommodation validateAccommodation(CreateBookingRequestDto requestDto) {

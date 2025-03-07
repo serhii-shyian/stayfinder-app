@@ -36,6 +36,7 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <springdoc.version>2.1.0</springdoc.version>
         <stripe.version>28.1.0</stripe.version>
+        <telegrambot.version>6.9.7.1</telegrambot.version>
     </properties>
     <dependencies>
         <dependency>
@@ -123,6 +124,12 @@
             <groupId>com.stripe</groupId>
             <artifactId>stripe-java</artifactId>
             <version>${stripe.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots</artifactId>
+            <version>${telegrambot.version}</version>
         </dependency>
     </dependencies>
 

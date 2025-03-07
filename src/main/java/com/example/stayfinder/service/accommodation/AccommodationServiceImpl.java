@@ -9,6 +9,7 @@ import com.example.stayfinder.model.Address;
 import com.example.stayfinder.model.User;
 import com.example.stayfinder.repository.accommodation.AccommodationRepository;
 import com.example.stayfinder.repository.address.AddressRepository;
+import com.example.stayfinder.service.notification.NotificationService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ public class AccommodationServiceImpl implements AccommodationService {
     private final AccommodationRepository accommodationRepository;
     private final AccommodationMapper accommodationMapper;
     private final AddressRepository addressRepository;
+    private final NotificationService notificationService;
 
     @Override
     public AccommodationDto save(AccommodationRequestDto requestDto, User user) {
@@ -30,7 +32,7 @@ public class AccommodationServiceImpl implements AccommodationService {
                 .orElseGet(() -> addressRepository.save(getAddress(requestDto.location())));
         accommodationFromDto.setLocation(address);
         Accommodation accommodationFromDb = accommodationRepository.save(accommodationFromDto);
-
+        notificationService.sendCreateAccommodationMessage(accommodationFromDb, user);
         return accommodationMapper.toDto(accommodationFromDb);
     }
 
