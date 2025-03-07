@@ -78,4 +78,47 @@ public class UserRepositoryTest {
         // Then
         assertFalse(optionalUser.isPresent());
     }
+
+    @Test
+    @DisplayName("""
+            Find user by existing email
+            """)
+    @Sql(scripts = {"classpath:database/roles/insert-into-roles.sql",
+            "classpath:database/users/insert-into-users.sql"},
+            executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @Sql(scripts = {"classpath:database/users/delete-all-from-users.sql",
+            "classpath:database/roles/delete-all-from-roles.sql"},
+            executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    void findByEmail_ExistingEmail_ReturnsUser() {
+        // Given
+        String email = "john.doe@example.com";
+
+        // When
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        // Then
+        assertTrue(optionalUser.isPresent());
+        assertEquals(email, optionalUser.get().getEmail());
+    }
+
+    @Test
+    @DisplayName("""
+            Find user by non-existing email
+            """)
+    @Sql(scripts = {"classpath:database/roles/insert-into-roles.sql",
+            "classpath:database/users/insert-into-users.sql"},
+            executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    @Sql(scripts = {"classpath:database/users/delete-all-from-users.sql",
+            "classpath:database/roles/delete-all-from-roles.sql"},
+            executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    void findByEmail_NonExistingEmail_ReturnsEmptyOptional() {
+        // Given
+        String email = "non-existing@example.com";
+
+        // When
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        // Then
+        assertFalse(optionalUser.isPresent());
+    }
 }
