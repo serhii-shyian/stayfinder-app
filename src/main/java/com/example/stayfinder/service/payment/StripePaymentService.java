@@ -11,6 +11,7 @@ import com.example.stayfinder.model.Booking;
 import com.example.stayfinder.model.Payment;
 import com.example.stayfinder.repository.booking.BookingRepository;
 import com.example.stayfinder.repository.payment.PaymentRepository;
+import com.example.stayfinder.service.notification.NotificationService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -32,6 +33,7 @@ public class StripePaymentService implements PaymentService {
     private final PaymentMapper paymentMapper;
     private final BookingRepository bookingRepository;
     private final StripeConfig stripeConfig;
+    private final NotificationService notificationService;
 
     @Override
     public List<PaymentLowInfoDto> findAllByBookingUserId(Long userId, Pageable pageable) {
@@ -63,6 +65,7 @@ public class StripePaymentService implements PaymentService {
         Payment payment = findPaymentBySessionId(sessionId);
         updatePaymentStatus(payment, Payment.PaymentStatus.PAID);
         updateBookingStatus(payment.getBooking().getId(), Booking.Status.CONFIRMED);
+        notificationService.sendSuccessPaymentMessage(payment);
 
         return paymentMapper.toWithoutSessionDto(payment);
     }

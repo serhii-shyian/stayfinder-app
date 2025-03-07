@@ -26,5 +26,8 @@ jobs:
           echo "STRIPE_DEFAULT_QUANTITY=${{secrets.STRIPE_DEFAULT_QUANTITY}}" >> .env
           echo "STRIPE_DEFAULT_CURRENCY=${{secrets.STRIPE_DEFAULT_CURRENCY}}" >> .env          
           echo "STRIPE_CENTS_AMOUNT=${{secrets.STRIPE_CENTS_AMOUNT}}" >> .env
+          echo "BOT_NAME=${{secrets.BOT_NAME}}" >> .env          
+          echo "BOT_KEY=${{secrets.BOT_KEY}}" >> .env          
+          echo "BOT_EMAIL_REGEX=${{secrets.BOT_EMAIL_REGEX}}" >> .env
       - name: Build with Maven
         run: mvn --batch-mode --update-snapshots verify
