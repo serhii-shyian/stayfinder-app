@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Accessors;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +23,7 @@ import org.springframework.security.core.GrantedAuthority;
 @Getter
 @Setter
 @ToString
+@Accessors(chain = true)
 public class Role implements GrantedAuthority {
     private static final String ROLE_PREFIX = "ROLE_";
 
