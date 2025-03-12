@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -88,6 +89,12 @@ public class BookingServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(paymentService).existsByBookingUserIdAndStatus(user.getId());
+        verify(accommodationRepository).findById(requestDto.accommodationId());
+        verify(userRepository).findById(user.getId());
+        verify(bookingMapper).toEntity(requestDto);
+        verify(bookingRepository).save(booking);
+        verify(bookingMapper).toDto(booking);
         verify(notificationService).sendCreateBookingMessage(
                 accommodation, user, booking);
         verifyNoMoreInteractions(
@@ -109,6 +116,7 @@ public class BookingServiceTest {
         // Then
         assertThrows(DataProcessingException.class,
                 () -> bookingService.save(user, requestDto));
+        verify(paymentService).existsByBookingUserIdAndStatus(user.getId());
     }
 
     @Test
@@ -126,13 +134,16 @@ public class BookingServiceTest {
         Specification<Booking> specification = specificationBuilder.build(filter);
         when(specificationBuilder.build(filter)).thenReturn(specification);
         when(bookingRepository.findAll(specification, pageable)).thenReturn(page);
-        when(bookingMapper.toDtoList(page.getContent())).thenReturn(List.of(expected));
+        when(bookingMapper.toDto(booking)).thenReturn(expected);
 
         // When
-        List<BookingDto> actual = bookingService.findAllByUserIdAndStatus(filter, pageable);
+        Page<BookingDto> actual = bookingService.findAllByUserIdAndStatus(filter, pageable);
 
         // Then
-        assertEquals(List.of(expected), actual);
+        assertEquals(List.of(expected), actual.getContent());
+        verify(specificationBuilder, times(2)).build(filter);
+        verify(bookingRepository).findAll(specification, pageable);
+        verify(bookingMapper).toDto(booking);
         verifyNoMoreInteractions(bookingRepository, bookingMapper);
     }
 
@@ -154,6 +165,8 @@ public class BookingServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> bookingService.findAllByUserIdAndStatus(filter, pageable));
+        verify(specificationBuilder, times(2)).build(filter);
+        verify(bookingRepository).findAll(specification, pageable);
         verifyNoMoreInteractions(bookingRepository);
     }
 
@@ -170,13 +183,15 @@ public class BookingServiceTest {
         Page<Booking> page = createPageImpl(booking);
 
         when(bookingRepository.findByUserId(userId, pageable)).thenReturn(page);
-        when(bookingMapper.toDtoList(page.getContent())).thenReturn(List.of(expected));
+        when(bookingMapper.toDto(booking)).thenReturn(expected);
 
         // When
-        List<BookingDto> actual = bookingService.findAllByUserId(userId, pageable);
+        Page<BookingDto> actual = bookingService.findAllByUserId(userId, pageable);
 
         // Then
-        assertEquals(List.of(expected), actual);
+        assertEquals(List.of(expected), actual.getContent());
+        verify(bookingRepository).findByUserId(userId, pageable);
+        verify(bookingMapper).toDto(booking);
         verifyNoMoreInteractions(bookingRepository, bookingMapper);
     }
 
@@ -195,7 +210,8 @@ public class BookingServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> bookingService.findAllByUserId(userId, pageable));
-        verifyNoMoreInteractions(bookingRepository, bookingMapper);
+        verify(bookingRepository).findByUserId(userId, pageable);
+        verifyNoMoreInteractions(bookingRepository);
     }
 
     @Test
@@ -218,6 +234,8 @@ public class BookingServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(bookingRepository).findByUserIdAndId(userId, bookingId);
+        verify(bookingMapper).toDto(booking);
         verifyNoMoreInteractions(bookingRepository, bookingMapper);
     }
 
@@ -236,6 +254,7 @@ public class BookingServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> bookingService.findByUserIdAndId(userId, bookingId));
+        verify(bookingRepository).findByUserIdAndId(userId, bookingId);
         verifyNoMoreInteractions(bookingRepository);
     }
 
@@ -267,6 +286,11 @@ public class BookingServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(bookingRepository).findByUserIdAndId(userId, bookingId);
+        verify(bookingMapper).updateEntityFromDto(requestDto, existingBooking);
+        verify(bookingRepository).save(existingBooking);
+        verify(bookingMapper).toDto(updatedBooking);
+        verifyNoMoreInteractions(bookingMapper);
     }
 
     @Test
@@ -306,8 +330,9 @@ public class BookingServiceTest {
 
         // Then
         verify(bookingRepository).updateStatus(bookingId, Booking.Status.CANCELED);
+        verify(userRepository).findById(userId);
         verify(notificationService).sendCancelBookingMessage(user, existingBooking);
-        verifyNoMoreInteractions(bookingRepository, notificationService, userRepository);
+        verifyNoMoreInteractions(bookingRepository, userRepository, notificationService);
     }
 
     @Test
@@ -327,8 +352,8 @@ public class BookingServiceTest {
         // When & Then
         assertThrows(DataProcessingException.class,
                 () -> bookingService.cancelByUserIdAndId(userId, bookingId));
-        verifyNoMoreInteractions(
-                bookingRepository, notificationService, userRepository);
+        verify(bookingRepository).findByUserIdAndId(userId, bookingId);
+        verifyNoMoreInteractions(bookingRepository);
     }
 
     @Test
@@ -353,6 +378,8 @@ public class BookingServiceTest {
         bookingService.checkHourlyExpiredBookings();
 
         // Then
+        verify(bookingRepository).findByCheckOutDateAndStatusNot(now, Booking.Status.CANCELED);
+        verify(userRepository).findAllById(bookingIds);
         verify(bookingRepository).updateStatusForExpiredBooking(
                 bookingIds, Booking.Status.EXPIRED);
         verify(notificationService).sendReleaseAccommodationMessage(bookingIds, users);
@@ -365,19 +392,21 @@ public class BookingServiceTest {
             """)
     public void checkHourlyExpiredBookings_NoBookingsToExpire_DoesNothing() {
         // Given
-        Set<Long> bookingIds = Set.of(1L, 2L, 3L);
         LocalDateTime now = LocalDateTime.now()
                 .withMinute(0).withSecond(0).withNano(0);
-        List<User> users = createUserList();
 
         when(bookingRepository.findByCheckOutDateAndStatusNot(
                 now, Booking.Status.CANCELED))
                 .thenReturn(Collections.emptyList());
 
+        List<User> users = createUserList();
+        Set<Long> bookingIds = Set.of(1L, 2L, 3L);
+
         // When
         bookingService.checkHourlyExpiredBookings();
 
         // Then
+        verify(bookingRepository).findByCheckOutDateAndStatusNot(now, Booking.Status.CANCELED);
         verify(notificationService, never()).sendReleaseAccommodationMessage(bookingIds, users);
         verify(bookingRepository, never()).updateStatusForExpiredBooking(
                 bookingIds, Booking.Status.EXPIRED);

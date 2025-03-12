@@ -35,10 +35,10 @@ public class Booking {
     private LocalDateTime checkInDate;
     @Column(nullable = false)
     private LocalDateTime checkOutDate;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "accommodation_id", nullable = false)
     private Accommodation accommodation;
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     @Column(nullable = false)

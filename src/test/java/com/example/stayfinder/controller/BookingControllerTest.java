@@ -13,10 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.stayfinder.dto.booking.BookingDto;
 import com.example.stayfinder.dto.booking.CreateBookingRequestDto;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import javax.sql.DataSource;
 import lombok.SneakyThrows;
@@ -94,19 +96,24 @@ class BookingControllerTest {
             """)
     @WithUserDetails(value = "john.doe",
             userDetailsServiceBeanName = "customUserDetailsService")
-    void getAllByAuthUserId_ReturnsBookingDtoList() throws Exception {
+    void getAllByAuthUserId_ValidRequest_ReturnsBookingDtoPage() throws Exception {
         // When
         MvcResult result = mockMvc.perform(
                         get("/bookings/my")
+                                .param("page", "0")
+                                .param("size", "10")
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isOk())
                 .andReturn();
 
         // Then
-        BookingDto[] actual = objectMapper.readValue(
-                result.getResponse()
-                        .getContentAsByteArray(), BookingDto[].class);
+        String jsonResponse = result.getResponse().getContentAsString();
+        JsonNode root = objectMapper.readTree(jsonResponse);
+        JsonNode contentNode = root.path("content");
+        BookingDto[] actual = objectMapper.treeToValue(
+                contentNode, BookingDto[].class);
+
         assertEquals(2, actual.length);
     }
 
@@ -148,7 +155,8 @@ class BookingControllerTest {
             """)
     @WithUserDetails(value = "admin",
             userDetailsServiceBeanName = "customUserDetailsService")
-    void getAllByUserIdAndStatus_ReturnsListOfBookings() throws Exception {
+    void getAllByUserIdAndStatus_ExistingUserIdAndStatus_ReturnsBookingDtoPage()
+            throws Exception {
         // Given
         List<BookingDto> expectedBookings = List.of(getBookingDto());
 
@@ -165,11 +173,11 @@ class BookingControllerTest {
                 .andReturn();
 
         // Then
-        List<BookingDto> actualBookings = objectMapper.readValue(
-                result.getResponse().getContentAsByteArray(),
-                objectMapper.getTypeFactory()
-                        .constructCollectionType(List.class, BookingDto.class)
-        );
+        String jsonResponse = result.getResponse().getContentAsString();
+        JsonNode root = objectMapper.readTree(jsonResponse);
+        JsonNode contentNode = root.path("content");
+        List<BookingDto> actualBookings = Arrays.asList(
+                objectMapper.treeToValue(contentNode, BookingDto[].class));
 
         assertNotNull(actualBookings);
         assertEquals(expectedBookings.size(), actualBookings.size());

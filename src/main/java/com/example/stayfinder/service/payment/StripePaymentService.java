@@ -17,7 +17,6 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,12 +35,12 @@ public class StripePaymentService implements PaymentService {
     private final NotificationService notificationService;
 
     @Override
-    public List<PaymentLowInfoDto> findAllByBookingUserId(Long userId, Pageable pageable) {
-        Page<Payment> payments = paymentRepository.findByBookingUserId(userId, pageable);
-        if (payments.isEmpty()) {
+    public Page<PaymentLowInfoDto> findAllByBookingUserId(Long userId, Pageable pageable) {
+        Page<Payment> paymentsPage = paymentRepository.findByBookingUserId(userId, pageable);
+        if (paymentsPage.isEmpty()) {
             throw new EntityNotFoundException("No payments found for user id: " + userId);
         }
-        return paymentMapper.toDtoList(payments.getContent());
+        return paymentsPage.map(paymentMapper::toLowInfoDto);
     }
 
     @Override

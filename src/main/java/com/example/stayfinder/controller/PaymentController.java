@@ -7,8 +7,8 @@ import com.example.stayfinder.dto.payment.PaymentWithoutSessionDto;
 import com.example.stayfinder.service.payment.StripePaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +32,7 @@ public class PaymentController {
     @Operation(summary = "Get all payments by booking user id",
             description = "Getting a list of payments by booking user id")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<PaymentLowInfoDto> getAllByBookingUserId(
+    public Page<PaymentLowInfoDto> getAllByBookingUserId(
             @RequestParam(name = "user_id") Long userId, Pageable pageable) {
         return paymentService.findAllByBookingUserId(userId, pageable);
     }

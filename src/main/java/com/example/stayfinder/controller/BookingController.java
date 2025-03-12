@@ -7,8 +7,8 @@ import com.example.stayfinder.model.User;
 import com.example.stayfinder.service.booking.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -48,7 +48,7 @@ public class BookingController {
     @Operation(summary = "Get a bookings by user id or status",
             description = "Getting a list of bookings by user id or status")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<BookingDto> getAllByUserIdAndStatus(BookingFilterParameters parameters,
+    public Page<BookingDto> getAllByUserIdAndStatus(BookingFilterParameters parameters,
                                                     Pageable pageable) {
         return bookingService.findAllByUserIdAndStatus(parameters, pageable);
     }
@@ -58,7 +58,7 @@ public class BookingController {
     @Operation(summary = "Get all bookings for current user",
             description = "Getting all bookings for current user by user id")
     @PreAuthorize("hasRole('USER')")
-    public List<BookingDto> getAllByAuthUserId(Authentication authentication,
+    public Page<BookingDto> getAllByAuthUserId(Authentication authentication,
                                                Pageable pageable) {
         User user = (User) authentication.getPrincipal();
         return bookingService.findAllByUserId(user.getId(), pageable);

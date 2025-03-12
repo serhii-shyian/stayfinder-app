@@ -5,7 +5,6 @@ import com.example.stayfinder.dto.accommodation.AccommodationDto;
 import com.example.stayfinder.dto.accommodation.AccommodationRequestDto;
 import com.example.stayfinder.model.Accommodation;
 import com.example.stayfinder.model.Address;
-import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -18,8 +17,6 @@ public interface AccommodationMapper {
 
     @Mapping(target = "location", source = "location", qualifiedByName = "addressToString")
     AccommodationDto toDto(Accommodation accommodation);
-
-    List<AccommodationDto> toDtoList(List<Accommodation> accommodationList);
 
     @Mapping(target = "location", ignore = true)
     void updateEntityFromDto(AccommodationRequestDto requestDto,
