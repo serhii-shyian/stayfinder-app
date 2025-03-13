@@ -29,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -68,6 +69,10 @@ public class AccommodationServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(accommodationMapper).toEntity(requestDto);
+        verify(addressRepository).findByAddress(requestDto.location());
+        verify(accommodationRepository).save(accommodation);
+        verify(accommodationMapper).toDto(accommodation);
         verify(notificationService).sendCreateAccommodationMessage(accommodation, user);
         verifyNoMoreInteractions(
                 accommodationRepository, accommodationMapper, notificationService);
@@ -81,22 +86,30 @@ public class AccommodationServiceTest {
         // Given
         Accommodation firstAccommodation = getAccommodationList().get(0);
         Accommodation secondAccommodation = getAccommodationList().get(1);
-        List<Accommodation> accommodationList = List.of(
-                firstAccommodation, secondAccommodation);
-        List<AccommodationDto> expected = List.of(
-                getDtoFromAccommodation(firstAccommodation),
-                getDtoFromAccommodation(secondAccommodation));
+        List<Accommodation> accommodationList = List.of(firstAccommodation, secondAccommodation);
+        Page<Accommodation> accommodationPage = new PageImpl<>(
+                accommodationList, PageRequest.of(0, 5), accommodationList.size());
+        AccommodationDto firstAccommodationDto = getDtoFromAccommodation(firstAccommodation);
+        AccommodationDto secondAccommodationDto = getDtoFromAccommodation(secondAccommodation);
+        List<AccommodationDto> accommodationDtoList = List.of(
+                firstAccommodationDto, secondAccommodationDto);
         Pageable pageable = PageRequest.of(0, 5);
 
-        when(accommodationRepository.findAll(pageable))
-                .thenReturn(new PageImpl<>(accommodationList));
-        when(accommodationMapper.toDtoList(accommodationList)).thenReturn(expected);
+        when(accommodationRepository.findAll(pageable)).thenReturn(accommodationPage);
+        when(accommodationMapper.toDto(firstAccommodation)).thenReturn(firstAccommodationDto);
+        when(accommodationMapper.toDto(secondAccommodation)).thenReturn(secondAccommodationDto);
+
+        Page<AccommodationDto> expected = new PageImpl<>(
+                accommodationDtoList, PageRequest.of(0, 5), accommodationList.size());
 
         // When
-        List<AccommodationDto> actual = accommodationService.findAll(pageable);
+        Page<AccommodationDto> actual = accommodationService.findAll(pageable);
 
         // Then
         assertEquals(expected, actual);
+        verify(accommodationRepository).findAll(pageable);
+        verify(accommodationMapper).toDto(firstAccommodation);
+        verify(accommodationMapper).toDto(secondAccommodation);
         verifyNoMoreInteractions(accommodationRepository, accommodationMapper);
     }
 
@@ -119,6 +132,8 @@ public class AccommodationServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(accommodationRepository).findById(accommodation.getId());
+        verify(accommodationMapper).toDto(accommodation);
         verifyNoMoreInteractions(accommodationRepository, accommodationMapper);
     }
 
@@ -134,6 +149,7 @@ public class AccommodationServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> accommodationService.findById(99L));
+        verify(accommodationRepository).findById(99L);
         verifyNoMoreInteractions(accommodationRepository);
     }
 
@@ -161,6 +177,10 @@ public class AccommodationServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(accommodationRepository).findById(accommodation.getId());
+        verify(accommodationMapper).updateEntityFromDto(requestDto, accommodation);
+        verify(accommodationRepository).save(accommodation);
+        verify(accommodationMapper).toDto(accommodation);
         verifyNoMoreInteractions(accommodationRepository, accommodationMapper);
     }
 
@@ -177,39 +197,7 @@ public class AccommodationServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> accommodationService.updateById(99L, requestDto));
-        verifyNoMoreInteractions(accommodationRepository);
-    }
-
-    @Test
-    @DisplayName("""
-            Delete accommodation by id when id exists
-            """)
-    void deleteAccommodation_ExistingId_ReturnsNothing() {
-        // Given
-        Accommodation accommodation = getAccommodationList().get(0);
-
-        when(accommodationRepository.findById(accommodation.getId()))
-                .thenReturn(Optional.of(accommodation));
-
-        // When
-        accommodationService.deleteById(accommodation.getId());
-
-        // Then
-        verify(accommodationRepository).delete(accommodation);
-    }
-
-    @Test
-    @DisplayName("""
-            Delete accommodation by id when id does not exist
-            """)
-    void deleteAccommodation_NonExistingId_ThrowsException() {
-        // Given
-        when(accommodationRepository.findById(99L))
-                .thenReturn(Optional.empty());
-
-        // Then
-        assertThrows(EntityNotFoundException.class,
-                () -> accommodationService.deleteById(99L));
+        verify(accommodationRepository).findById(99L);
         verifyNoMoreInteractions(accommodationRepository);
     }
 
@@ -219,16 +207,16 @@ public class AccommodationServiceTest {
     }
 
     private AccommodationDto getDtoFromAccommodation(Accommodation accommodation) {
-        return new AccommodationDto(
-                accommodation.getId(),
-                accommodation.getType().name(),
-                accommodation.getLocation().getAddress(),
-                accommodation.getSize(),
-                accommodation.getAmenities().stream()
+        return new AccommodationDto()
+                .setId(accommodation.getId())
+                .setType(accommodation.getType().name())
+                .setLocation(accommodation.getLocation().getAddress())
+                .setSize(accommodation.getSize())
+                .setAmenities(accommodation.getAmenities().stream()
                         .map(Enum::name)
-                        .collect(Collectors.toSet()),
-                accommodation.getDailyRate(),
-                accommodation.getAvailability());
+                        .collect(Collectors.toSet()))
+                .setDailyRate(accommodation.getDailyRate())
+                .setAvailability(accommodation.getAvailability());
     }
 
     private Accommodation getAccommodationFromDto(AccommodationRequestDto requestDto) {

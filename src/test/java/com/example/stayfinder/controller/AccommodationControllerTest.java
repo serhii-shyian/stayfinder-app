@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.stayfinder.dto.accommodation.AccommodationDto;
 import com.example.stayfinder.dto.accommodation.AccommodationRequestDto;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -93,25 +94,32 @@ class AccommodationControllerTest {
             Get list of all accommodations when they exist
             """)
     @WithMockUser(username = "user")
-    void getAllAccommodations_AccommodationsExist_ReturnsAccommodationDtoList()
+    void getAllAccommodations_AccommodationsExist_ReturnsAccommodationDtoPage()
             throws Exception {
         // Given
-        List<AccommodationDto> expected = getAccommodationDtoList();
+        List<AccommodationDto> accommodationDtoList = getAccommodationDtoList();
+        int expectedTotalElements = accommodationDtoList.size();
 
         // When
         MvcResult result = mockMvc.perform(
                         get("/accommodations")
+                                .param("page", "0")
+                                .param("size", "10")
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isOk())
                 .andReturn();
 
         // Then
-        AccommodationDto[] actual = objectMapper.readValue(
-                result.getResponse()
-                        .getContentAsByteArray(), AccommodationDto[].class);
-        assertEquals(expected.size(), actual.length);
-        assertEquals(expected, Arrays.stream(actual).toList());
+        String jsonResponse = result.getResponse().getContentAsString();
+        JsonNode root = objectMapper.readTree(jsonResponse);
+        JsonNode contentNode = root.path("content");
+        List<AccommodationDto> actualList = Arrays.asList(
+                objectMapper.treeToValue(contentNode, AccommodationDto[].class));
+
+        int actualTotalElements = root.path("totalElements").asInt();
+        assertEquals(expectedTotalElements, actualTotalElements);
+        assertEquals(accommodationDtoList, actualList);
     }
 
     @Test
@@ -124,6 +132,8 @@ class AccommodationControllerTest {
             throws Exception {
         // Given
         AccommodationDto expected = getAccommodationDtoList().get(0);
+        expected.setDailyRate(expected.getDailyRate()
+                .setScale(2, RoundingMode.HALF_UP));
 
         // When
         MvcResult result = mockMvc.perform(
@@ -168,7 +178,7 @@ class AccommodationControllerTest {
         AccommodationDto actual = objectMapper.readValue(
                 result.getResponse().getContentAsByteArray(), AccommodationDto.class);
         assertNotNull(actual);
-        assertNotNull(actual.id());
+        assertNotNull(actual.getId());
         assertTrue(reflectionEquals(expected, actual, "id"));
     }
 
@@ -225,24 +235,23 @@ class AccommodationControllerTest {
 
     private List<AccommodationDto> getAccommodationDtoList() {
         return List.of(
-                new AccommodationDto(
-                        2L,
-                        "APARTMENT",
-                        "Downtown",
-                        "1000 sqft",
-                        Set.of(),
-                        BigDecimal.valueOf(120.00)
-                                .setScale(2, RoundingMode.HALF_UP),
-                        5),
-                new AccommodationDto(
-                        3L,
-                        "HOUSE",
-                        "Suburbs",
-                        "2000 sqft",
-                        Set.of(),
-                        BigDecimal.valueOf(200.00)
-                                .setScale(2, RoundingMode.HALF_UP),
-                        3));
+                new AccommodationDto()
+                        .setId(2L)
+                        .setType("APARTMENT")
+                        .setLocation("Downtown")
+                        .setSize("1000 sqft")
+                        .setAmenities(Set.of())
+                        .setDailyRate(BigDecimal.valueOf(120.00))
+                        .setAvailability(5),
+                new AccommodationDto()
+                        .setId(3L)
+                        .setType("HOUSE")
+                        .setLocation("Suburbs")
+                        .setSize("2000 sqft")
+                        .setAmenities(Set.of())
+                        .setDailyRate(BigDecimal.valueOf(200.00))
+                        .setAvailability(3)
+        );
     }
 
     private List<AccommodationRequestDto> getCreateAccommodationRequestDtoList() {
@@ -264,15 +273,14 @@ class AccommodationControllerTest {
         );
     }
 
-    private AccommodationDto getAccommodationDtoFromRequestDto(
-            AccommodationRequestDto requestDto) {
-        return new AccommodationDto(
-                2L,
-                requestDto.type(),
-                requestDto.location(),
-                requestDto.size(),
-                requestDto.amenities(),
-                requestDto.dailyRate(),
-                requestDto.availability());
+    private AccommodationDto getAccommodationDtoFromRequestDto(AccommodationRequestDto requestDto) {
+        return new AccommodationDto()
+                .setId(2L)
+                .setType(requestDto.type())
+                .setLocation(requestDto.location())
+                .setSize(requestDto.size())
+                .setAmenities(requestDto.amenities())
+                .setDailyRate(requestDto.dailyRate())
+                .setAvailability(requestDto.availability());
     }
 }

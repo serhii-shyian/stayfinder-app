@@ -2,13 +2,17 @@ package com.example.stayfinder.dto.accommodation;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
-public record AccommodationDto(
-        Long id,
-        String type,
-        String location,
-        String size,
-        Set<String> amenities,
-        BigDecimal dailyRate,
-        Integer availability) {
+@Data
+@Accessors(chain = true)
+public class AccommodationDto {
+    private Long id;
+    private String type;
+    private String location;
+    private String size;
+    private Set<String> amenities;
+    private BigDecimal dailyRate;
+    private Integer availability;
 }

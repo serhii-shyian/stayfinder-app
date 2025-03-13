@@ -12,6 +12,7 @@ import com.example.stayfinder.dto.payment.CreatePaymentSessionDto;
 import com.example.stayfinder.dto.payment.PaymentDto;
 import com.example.stayfinder.dto.payment.PaymentLowInfoDto;
 import com.example.stayfinder.dto.payment.PaymentWithoutSessionDto;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -100,27 +101,32 @@ class PaymentControllerTest {
             """)
     @WithUserDetails(value = "admin",
             userDetailsServiceBeanName = "customUserDetailsService")
-    void getAllByBookingUserId_ReturnsPaymentLowInfoDtoList() throws Exception {
-        //Given
+    void getAllByBookingUserId_ReturnsPaymentLowInfoDtoPage() throws Exception {
+        // Given
         long userId = 4L;
         List<PaymentLowInfoDto> expected = getPaymentLowInfoDtoList();
 
-        //When
+        // When
         MvcResult result = mockMvc.perform(
                         get("/payments")
                                 .param("user_id", Long.toString(userId))
+                                .param("page", "0")
+                                .param("size", "10")
                                 .contentType(MediaType.APPLICATION_JSON)
                 )
                 .andExpect(status().isOk())
                 .andReturn();
 
-        //Then
-        PaymentLowInfoDto[] actual = objectMapper.readValue(
-                result.getResponse()
-                        .getContentAsByteArray(), PaymentLowInfoDto[].class);
+        // Then
+        String jsonResponse = result.getResponse().getContentAsString();
+        JsonNode root = objectMapper.readTree(jsonResponse);
+        JsonNode contentNode = root.path("content");
+        PaymentLowInfoDto[] actual = objectMapper.treeToValue(
+                contentNode, PaymentLowInfoDto[].class);
+
         assertNotNull(actual);
         assertEquals(expected.size(), actual.length);
-        assertEquals(expected, Arrays.stream(actual).toList());
+        assertEquals(expected, Arrays.asList(actual));
     }
 
     @Test
@@ -221,13 +227,11 @@ class PaymentControllerTest {
         return List.of(
                 new PaymentLowInfoDto(2L,
                         "session-12345",
-                        BigDecimal.valueOf(120.00)
-                                .setScale(2, RoundingMode.HALF_UP),
+                        BigDecimal.valueOf(120.00),
                         "PENDING"),
                 new PaymentLowInfoDto(3L,
                         "session-67890",
-                        BigDecimal.valueOf(200.00)
-                                .setScale(2, RoundingMode.HALF_UP),
+                        BigDecimal.valueOf(200.00),
                         "PAID")
         );
     }

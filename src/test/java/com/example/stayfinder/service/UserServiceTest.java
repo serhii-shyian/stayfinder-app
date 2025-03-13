@@ -68,7 +68,14 @@ public class UserServiceTest {
 
         //Then
         assertEquals(expected, actual);
-        verifyNoMoreInteractions(userRepository, userMapper, passwordEncoder);
+        verify(userRepository).findByUsername(requestDto.username());
+        verify(roleRepository).findAllByNameContaining(Set.of(Role.RoleName.USER));
+        verify(userMapper).toEntity(requestDto);
+        verify(passwordEncoder).encode(requestDto.password());
+        verify(userRepository).save(userFromDto);
+        verify(userMapper).toDto(savedUser);
+        verifyNoMoreInteractions(
+                userRepository, roleRepository, userMapper, passwordEncoder);
     }
 
     @Test
@@ -85,6 +92,7 @@ public class UserServiceTest {
         //Then
         assertThrows(RegistrationException.class,
                 () -> userService.register(requestDto));
+        verify(userRepository).findByUsername(requestDto.username());
         verifyNoMoreInteractions(userRepository);
     }
 
@@ -110,6 +118,10 @@ public class UserServiceTest {
 
         //Then
         assertEquals(expected, actual);
+        verify(userRepository).findById(user.getId());
+        verify(roleRepository).findAllByNameContaining(roleNamesSet);
+        verify(userRepository).save(user);
+        verify(userMapper).toDto(user);
         verifyNoMoreInteractions(userRepository, roleRepository, userMapper);
     }
 
@@ -124,6 +136,7 @@ public class UserServiceTest {
         //Then
         assertThrows(EntityNotFoundException.class,
                 () -> userService.updateUserRoles(99L, List.of("ADMIN")));
+        verify(userRepository).findById(99L);
         verifyNoMoreInteractions(userRepository);
     }
 
@@ -169,6 +182,7 @@ public class UserServiceTest {
 
         // Then
         assertEquals(expected, actual);
+        verify(userRepository).findById(user.getId());
         verify(userMapper).updateEntityFromDto(user, updateDto);
         verify(passwordEncoder).encode(updateDto.password());
         verify(userRepository).save(user);
@@ -190,7 +204,7 @@ public class UserServiceTest {
         // When & Then
         assertThrows(EntityNotFoundException.class,
                 () -> userService.updateProfile(user, updateDto));
-
+        verify(userRepository).findById(user.getId());
         verifyNoMoreInteractions(userMapper, passwordEncoder, userRepository);
     }
 

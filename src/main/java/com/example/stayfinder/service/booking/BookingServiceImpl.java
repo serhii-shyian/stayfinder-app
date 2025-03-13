@@ -53,23 +53,23 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingDto> findAllByUserIdAndStatus(
+    public Page<BookingDto> findAllByUserIdAndStatus(
             BookingFilterParameters parameters, Pageable pageable) {
         Specification<Booking> specification = specificationBuilder.build(parameters);
-        Page<Booking> bookingsFromDb = bookingRepository.findAll(specification, pageable);
-        if (bookingsFromDb.isEmpty()) {
-            throw new EntityNotFoundException("No bookings found for the specified filters");
+        Page<Booking> bookingsPage = bookingRepository.findAll(specification, pageable);
+        if (bookingsPage.isEmpty()) {
+            throw new EntityNotFoundException("No bookings found for the specified filters.");
         }
-        return bookingMapper.toDtoList(bookingsFromDb.getContent());
+        return bookingsPage.map(bookingMapper::toDto);
     }
 
     @Override
-    public List<BookingDto> findAllByUserId(Long userId, Pageable pageable) {
-        Page<Booking> bookingsFromDb = bookingRepository.findByUserId(userId, pageable);
-        if (bookingsFromDb.isEmpty()) {
+    public Page<BookingDto> findAllByUserId(Long userId, Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findByUserId(userId, pageable);
+        if (bookingsPage.isEmpty()) {
             throw new EntityNotFoundException("No bookings found for user id: " + userId);
         }
-        return bookingMapper.toDtoList(bookingsFromDb.getContent());
+        return bookingsPage.map(bookingMapper::toDto);
     }
 
     @Override
@@ -118,7 +118,7 @@ public class BookingServiceImpl implements BookingService {
 
     private Accommodation validateAccommodation(CreateBookingRequestDto requestDto) {
         List<Booking> overlappingBookings = bookingRepository.findByAccommodationId(
-                requestDto.accommodationId()).stream()
+                        requestDto.accommodationId()).stream()
                 .filter(b -> isOverlapping(b, requestDto))
                 .toList();
 

@@ -6,8 +6,8 @@ import com.example.stayfinder.model.User;
 import com.example.stayfinder.service.accommodation.AccommodationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,7 +46,7 @@ public class AccommodationController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(summary = "Get all accommodation",
             description = "Getting a list of all accommodation")
-    public List<AccommodationDto> getAll(Pageable pageable) {
+    public Page<AccommodationDto> getAll(Pageable pageable) {
         return accommodationService.findAll(pageable);
     }
 

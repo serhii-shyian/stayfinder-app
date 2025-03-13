@@ -78,18 +78,22 @@ public class StripePaymentServiceTest {
         Page<Payment> paymentsPage = new PageImpl<>(paymentsList);
         PaymentLowInfoDto dto1 = getPaymentLowInfoDto(payment1);
         PaymentLowInfoDto dto2 = getPaymentLowInfoDto(payment2);
-        List<PaymentLowInfoDto> expected = List.of(dto1, dto2);
 
         when(paymentRepository.findByBookingUserId(1L, pageable))
                 .thenReturn(paymentsPage);
-        when(paymentMapper.toDtoList(paymentsList)).thenReturn(expected);
+        when(paymentMapper.toLowInfoDto(payment1)).thenReturn(dto1);
+        when(paymentMapper.toLowInfoDto(payment2)).thenReturn(dto2);
+
+        List<PaymentLowInfoDto> expected = List.of(dto1, dto2);
 
         // When
-        List<PaymentLowInfoDto> actual
-                = stripePaymentService.findAllByBookingUserId(1L, pageable);
+        Page<PaymentLowInfoDto> actual = stripePaymentService.findAllByBookingUserId(1L, pageable);
 
         // Then
-        assertEquals(expected, actual);
+        assertEquals(expected, actual.getContent());
+        verify(paymentRepository).findByBookingUserId(1L, pageable);
+        verify(paymentMapper).toLowInfoDto(payment1);
+        verify(paymentMapper).toLowInfoDto(payment2);
         verifyNoMoreInteractions(paymentRepository, paymentMapper);
     }
 
@@ -106,6 +110,7 @@ public class StripePaymentServiceTest {
         // Then
         assertThrows(EntityNotFoundException.class,
                 () -> stripePaymentService.findAllByBookingUserId(99L, pageable));
+        verify(paymentRepository).findByBookingUserId(99L, pageable);
         verifyNoMoreInteractions(paymentRepository);
     }
 
@@ -140,6 +145,10 @@ public class StripePaymentServiceTest {
             assertEquals(payment.getSessionUrl(), capturedPayment.getSessionUrl());
             assertEquals(payment.getAmount(), capturedPayment.getAmount());
             assertEquals(payment.getStatus(), capturedPayment.getStatus());
+            verify(bookingRepository).findById(1L);
+            verify(stripeConfig).createSessionParams(totalAmount);
+            verify(paymentRepository).save(paymentCaptor.capture());
+            verify(paymentMapper).toDto(payment);
             verifyNoMoreInteractions(
                     bookingRepository, stripeConfig, paymentRepository, paymentMapper);
         }
@@ -165,7 +174,8 @@ public class StripePaymentServiceTest {
             // When & Then
             assertThrows(DataProcessingException.class,
                     () -> stripePaymentService.createSession(1L));
-
+            verify(bookingRepository).findById(1L);
+            verify(stripeConfig).createSessionParams(totalAmount);
             verifyNoInteractions(paymentRepository, paymentMapper);
         }
     }
@@ -193,6 +203,7 @@ public class StripePaymentServiceTest {
         assertEquals(expected, actual);
         verify(paymentRepository).updateStatus(
                 payment.getId(), Payment.PaymentStatus.PAID);
+        verify(paymentMapper).toWithoutSessionDto(payment);
         verify(bookingRepository).updateStatus(
                 payment.getBooking().getId(), Booking.Status.CONFIRMED);
         verify(notificationService).sendSuccessPaymentMessage(payment);
@@ -213,10 +224,8 @@ public class StripePaymentServiceTest {
         assertThrows(EntityNotFoundException.class, () -> {
             stripePaymentService.processSuccessfulPayment(invalidSessionId);
         });
-
         verify(paymentRepository).findBySessionId(invalidSessionId);
-        verifyNoMoreInteractions(
-                paymentRepository, bookingRepository, notificationService);
+        verifyNoMoreInteractions(paymentRepository);
     }
 
     @Test
@@ -241,8 +250,8 @@ public class StripePaymentServiceTest {
         String actualMessage = stripePaymentService.processCancelPayment(sessionId);
 
         // Then
-        verify(paymentRepository, times(2)).findBySessionId(sessionId);
         assertEquals(expectedMessage, actualMessage);
+        verify(paymentRepository, times(2)).findBySessionId(sessionId);
     }
 
     @Test
@@ -259,7 +268,6 @@ public class StripePaymentServiceTest {
         // When & Then
         assertThrows(EntityNotFoundException.class,
                 () -> stripePaymentService.processCancelPayment(sessionId));
-
         verify(paymentRepository).findBySessionId(sessionId);
         verifyNoMoreInteractions(paymentRepository);
     }

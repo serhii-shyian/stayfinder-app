@@ -10,8 +10,8 @@ import com.example.stayfinder.model.User;
 import com.example.stayfinder.repository.accommodation.AccommodationRepository;
 import com.example.stayfinder.repository.address.AddressRepository;
 import com.example.stayfinder.service.notification.NotificationService;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +37,9 @@ public class AccommodationServiceImpl implements AccommodationService {
     }
 
     @Override
-    public List<AccommodationDto> findAll(Pageable pageable) {
-        return accommodationMapper.toDtoList(
-                accommodationRepository.findAll(pageable).getContent());
+    public Page<AccommodationDto> findAll(Pageable pageable) {
+        return accommodationRepository.findAll(pageable)
+                .map(accommodationMapper::toDto);
     }
 
     @Override
@@ -59,8 +59,7 @@ public class AccommodationServiceImpl implements AccommodationService {
 
     @Override
     public void deleteById(Long id) {
-        Accommodation accommodationFromDb = findAccommodationById(id);
-        accommodationRepository.delete(accommodationFromDb);
+        accommodationRepository.deleteById(id);
     }
 
     private Address getAddress(String location) {
